@@ -1,6 +1,17 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+let aiInstance: GoogleGenAI | null = null;
+
+const getAIInstance = () => {
+  if (!aiInstance) {
+    const key = process.env.GEMINI_API_KEY;
+    if (!key || key === "") {
+      throw new Error("Gemini API key is missing from the build. Please ensure GEMINI_API_KEY is set in your GitHub Secrets and the deployment has finished.");
+    }
+    aiInstance = new GoogleGenAI({ apiKey: key });
+  }
+  return aiInstance;
+};
 
 export interface TranslationRequest {
   text: string;
@@ -18,7 +29,7 @@ export async function translateText(request: TranslationRequest): Promise<Transl
   
   const prompt = `
     You are a professional multilingual translator.
-    Translate the following text into ${request.targetLanguage}.
+    Translate the provided text into ${request.targetLanguage}.
     
     Instructions:
     - Preserve the original meaning exactly.
@@ -26,14 +37,18 @@ export async function translateText(request: TranslationRequest): Promise<Transl
     - Match the tone: ${request.tone}.
     - If the sentence sounds awkward when translated literally, rewrite it naturally.
     - Keep it clean and easy to read.
-    
-    Text to translate:
-    "${request.text}"
   `;
 
+  const ai = getAIInstance();
   const response = await ai.models.generateContent({
     model,
-    contents: prompt,
+    contents: {
+      parts: [
+        { text: prompt },
+        { text: "Text to translate:" },
+        { text: request.text }
+      ]
+    },
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -80,7 +95,7 @@ export async function enhanceText(request: EnhanceRequest): Promise<EnhanceRespo
   
   const prompt = `
     You are an expert text editor and language enhancer. 
-    Your task is to refine the text provided by the user so that it is:
+    Your task is to refine the provided text so that it is:
     - Clear, professional, and polished
     - Fluent and natural
     - Suitable for portfolio, formal, or professional use
@@ -91,14 +106,18 @@ export async function enhanceText(request: EnhanceRequest): Promise<EnhanceRespo
     - Match the user's intended tone: ${request.tone}
     - Highlight subtle improvements in wording and phrasing.
     - Suggest alternative wordings if it improves clarity or professionalism.
-
-    Text to refine:
-    "${request.text}"
   `;
 
+  const ai = getAIInstance();
   const response = await ai.models.generateContent({
     model,
-    contents: prompt,
+    contents: {
+      parts: [
+        { text: prompt },
+        { text: "Text to refine:" },
+        { text: request.text }
+      ]
+    },
     config: {
       responseMimeType: "application/json",
       responseSchema: {

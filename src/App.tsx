@@ -69,6 +69,7 @@ export default function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('truetext_history');
@@ -99,6 +100,7 @@ export default function App() {
     if (!inputText.trim()) return;
 
     setIsLoading(true);
+    setError(null);
     try {
       if (activeTab === 'translate') {
         const result = await translateText({
@@ -118,8 +120,9 @@ export default function App() {
         setImprovements(result.improvements);
         addToHistory('enhance', inputText, result.refinedText);
       }
-    } catch (error) {
-      console.error(error);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "An unexpected error occurred. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -345,6 +348,24 @@ export default function App() {
             </div>
           )}
         </div>
+
+        {/* Error Message */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="max-w-4xl mx-auto mb-8 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm flex items-center gap-3"
+            >
+              <Info className="w-5 h-5 shrink-0" />
+              <p className="flex-1">{error}</p>
+              <button onClick={() => setError(null)} className="p-1 hover:bg-red-500/10 rounded-lg">
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Main Editor */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative">
