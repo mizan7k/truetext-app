@@ -5,9 +5,14 @@ let aiInstance: GoogleGenAI | null = null;
 const getAIInstance = () => {
   if (!aiInstance) {
     const key = process.env.GEMINI_API_KEY;
-    if (!key || key === "") {
-      throw new Error("Gemini API key is missing from the build. Please ensure GEMINI_API_KEY is set in your GitHub Secrets and the deployment has finished.");
+    
+    // Check for missing, empty, or literal "undefined"/"null" strings
+    if (!key || key === "" || key === "undefined" || key === "null") {
+      const msg = "Gemini API key is missing from the build. Please ensure GEMINI_API_KEY is set in your GitHub Secrets and the deployment has finished successfully.";
+      console.error(msg);
+      throw new Error(msg);
     }
+    
     aiInstance = new GoogleGenAI({ apiKey: key });
   }
   return aiInstance;
